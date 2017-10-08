@@ -228,7 +228,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 		  orig_height -= 400;
 		  break;
 	}
-	switch ( converted_2->resolution )
+	switch(converted_2->resolution)
 	{
 		case 1:
 			v14 = 6;
@@ -249,7 +249,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 	// Looks like a global struct initialization?..
 	ga_2 = global_alloc_2;
 	ga_3 = global_alloc_3;
-	fwrite_size_preceded(stream_out, "\b\e*b1030m");// Unknown PCL command \e*b1030m
+	fputs("\e*b1030m", stream_out);// Unknown PCL command \e*b1030m
 	ga4_size = 0;
 	ga4_appends = 0;
 	ga4_preceeder = 0;
@@ -297,7 +297,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 					}
 					convert_ga3_t();
 					send_size_1 = sendbuf_size;
-					if ( sendbuf_size )
+					if(sendbuf_size)
 					{
 						buffered_send(stream_out, &send_size_1, ga_2);
 					}
@@ -349,11 +349,6 @@ int fwrite_size_preceded(FILE *s, const char* a2)
 	return 0;
 }
 
-int fwrite_wrapper(FILE *stream, void *data, size_t n)
-{
-	return (n && fwrite(data, 1, n, stream) != n);
-}
-
 char buffered_send(FILE *a1, int* size_ptr, uint8_t* data)
 {
 	int size; // [sp+20h] [bp-8h]@1
@@ -372,8 +367,8 @@ int flush_ga4(FILE *stream)
 	int result = ga4_size;
 	if(result)
 	{
-		fprintf(stream, "%zu" "%cw" "%c%c", ga4_size + 2, 1, 0, ga4_preceeder);
-		result = fwrite_wrapper(stream, global_alloc_4, ga4_size);
+		fprintf(stream, "%zuw%c%c", ga4_size + 2, 0, ga4_preceeder);
+		result = fwrite(global_alloc_4, 1, ga4_size, stream);
 	}
 	ga4_size = 0;
 	ga4_preceeder = 0;

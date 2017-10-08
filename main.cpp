@@ -187,15 +187,14 @@ int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 
 							send_converted_data(stream_out, alloc_1, ps_n1, ps_n2);
 							flush_ga4(stream_out);
-							fwrite_size_preceded(stream_out, "\x05" "1030M");
-							fwrite_size_preceded(stream_out, "\x01" "\f");
+							fputs("1030M\f", stream_out);
 						}
 						if ( !((flags[0] - 48) & 1) )
 						{
-							fwrite_size_preceded(stream_out, "\t\x1B%-12345X");
-							fwrite_size_preceded(stream_out, "\x1F@PJL EOJ NAME=\"Brother HL-XXX\"\n");
+							fputs("\e%-12345X", stream_out);
+							fputs("@PJL EOJ NAME=\"Brother HL-XXX\"\n", stream_out);
 						}
-						fwrite_size_preceded(stream_out, "\t\x1B%-12345X");
+						fputs("\e%-12345X", stream_out);
 					}
 					// Cleanup
 					if ( alloc_1 )

@@ -152,5 +152,6 @@ extern char nonzero_found_1;
 #include "decls.h"
 
 #define debug(x,y,z) {FILE* df = fopen("/tmp/bro_log.txt", "a"); fprintf(df, x, y, z); fclose(df);}
+#define debug2(x,y) {FILE* df = fopen("/tmp/bro_log.txt", "a"); fwrite(x, 1, y, df); fclose(df);}
 
 #endif
