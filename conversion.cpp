@@ -2,7 +2,7 @@
 
 converted_1 *converted_2;
 
-void sub_804A48C()
+void convert_ga3_t()
 {
 	uint16_t v3; // cx@31
 	uint16_t v4; // cx@42
@@ -36,12 +36,12 @@ void sub_804A48C()
 	v23 = ga_2;
 	*ga_2 = 0;
 
-	if ( converted_2->field_1A )
+	if ( converted_2->converted_sizeb )
 	{
 		v18 = 0;
-		v19 = converted_2->field_1A;
+		v19 = converted_2->converted_sizeb;
 		*ga_3_c2 = 0x80u;
-		sub_804AD6D(ga_3_c2, v18, v19, &a4);
+		convert_3(ga_3_c2, v18, v19, &a4);
 		ga_3_c2[a4++] = 0;
 		memcpy(a2, ga_3_c2, a4);
 		++*v23;
@@ -57,7 +57,7 @@ void sub_804A48C()
 			v20 = row_width - i;
 			v19 = row_width - i;
 			*ga_3_c2 = 0;
-			sub_804AD6D(ga_3_c2, v18, v19, &a4);
+			convert_3(ga_3_c2, v18, v19, &a4);
 			memcpy(ga_3_c2 + a4, sending_row + i, v19);
 			i += v19;
 			a4 += v19;
@@ -105,7 +105,7 @@ void sub_804A48C()
 						}
 					}
 					*ga_3_c2 = 0;
-					sub_804AD6D(ga_3_c2, v18, v19, &a4);
+					convert_3(ga_3_c2, v18, v19, &a4);
 					memcpy(sending_row, ga_3 + a4, v19);
 					v4 += v19;
 				}
@@ -115,7 +115,7 @@ void sub_804A48C()
 					for(k = j + 2; k < i + v20 && sending_row[k - 1] == sending_row[k]; ++k, ++v19);
 					j = k;
 					*ga_3_c2 = -128;
-					sub_804AD6D(ga_3_c2, v18, v19, &a4);
+					convert_3(ga_3_c2, v18, v19, &a4);
 					v3 = a4;
 					ga_3_c2[a4] = sending_row[k - 1];
 					a4 = v3 + 1;
@@ -181,7 +181,7 @@ void sub_804A48C()
 	}
 }
 
-void sub_804AD6D(uint8_t *data, uint16_t a2, uint16_t a3, uint16_t *changed)
+void convert_3(uint8_t *data, uint16_t a2, uint16_t a3, uint16_t *changed)
 {
 	uint16_t v4; // dx@5
 	uint16_t v5; // dx@7

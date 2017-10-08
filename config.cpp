@@ -1,6 +1,6 @@
 ﻿#include "rawtobr3.h"
 
-request_valid_values GlobalStruct1;
+valid_values_entry valid_values;
 
 const char *config_fields_3[9] =
 {
@@ -17,7 +17,7 @@ const char *config_fields_3[9] =
 
 converted_1 *convert_config(converted_1 *obj, config_store *config)
 {
-	int a4; // [sp+3Ch] [bp-1Ch]@49
+	int act_sizeb; // [sp+3Ch] [bp-1Ch]@49
 	paper_size *v8; // [sp+40h] [bp-18h]@49
 
 	obj->resolution = config->resolution;
@@ -28,19 +28,19 @@ converted_1 *convert_config(converted_1 *obj, config_store *config)
 	switch(config->resolution)
 	{
 		case 1:
-			obj->ps_n1 = config->ps_n1_copy / 2.5;
-			obj->ps_n2 = config->ps_n2_copy / 2.5;
+			obj->sizeb = config->ps_n1_copy / 2.5;
+			obj->sizea = config->ps_n2_copy / 2.5;
 			break;
 		case 3:
 		case 4:
 		case 5:
-			obj->ps_n1 = config->ps_n1_copy / 10;
-			obj->ps_n2 = config->ps_n2_copy / 10;
+			obj->sizeb = config->ps_n1_copy / 10;
+			obj->sizea = config->ps_n2_copy / 10;
 			break;
 
 		default:
-			obj->ps_n1 = config->ps_n1_copy / 5;
-			obj->ps_n2 = config->ps_n2_copy / 5;
+			obj->sizeb = config->ps_n1_copy / 5;
+			obj->sizea = config->ps_n2_copy / 5;
 	}
 
 	// Sourcetray
@@ -57,64 +57,65 @@ converted_1 *convert_config(converted_1 *obj, config_store *config)
 	obj->duplex = config->duplex;
 	obj->always_1 = 1;
 	obj->duplex_type = config->duplex_type;
-	obj->toner_save = config->toner_save;
+	obj->toner_save = !config->toner_save;
 	obj->sleep_time = config->sleep_time;
 	obj->copies = config->copies;
 
-	if ( obj->field_2 == 3 )
+	if(obj->always_3 == 3) // Always true
 	{
-		find_paper_size_0(&v8, obj->ps_n2, obj->ps_n1, &a4, 0);
+		//const char* extra = "dummy";
+		fetch_paper(&v8, obj->sizea, obj->sizeb, &act_sizeb, 0);
 		switch ( obj->resolution )
 		{
 			case 3:
 			case 4:
 			case 5:
-				a4 = 5 * a4 / 3;
+				act_sizeb = 5 * act_sizeb / 3;
 				break;
 
 			case 2:
 			case 6:
-				a4 = 5 * a4 / 6;
+				act_sizeb = 5 * act_sizeb / 6;
 				break;
 
 			default:
-				a4 /= 2.4;
+				act_sizeb /= 2.4;
 				break;
 		}
 	}
-	obj->field_1A = a4 / 8;
+	obj->converted_sizeb = act_sizeb / 8;
 	return obj;
 }
 
-int find_paper_size_0(paper_size **a1, uint16_t sizea, int16_t sizeb, int *act_sizeb, const char **extra_string)
+int fetch_paper(paper_size **a1, size_t sizea, size_t sizeb, int *act_sizeb, const char **extra_string)
 {
 	paper_size paper_sizes_data[13] =
 	{
-	  { "MONARCH", 0, 900, 465, NULL},
-	  { "COM10", 0, 1140, 495, NULL },
-	  { "A6", 0, 701, 496, "\x1B&ll4096a24a6d1E" },
-	  { "DL", 0, 1039, 520, NULL },
-	  { "B6", 0, 832, 590, NULL },
-	  { "A5", 0, 992, 701, "\x1B&l4096a25a6d1E" },
-	  { "C5", 0, 1082, 767, NULL },
-	  { "B5", 0, 1180, 832, NULL },
-	  { "JISB5", 0, 1214, 860, NULL },
-	  { "EXECUTIVE", 0, 1260, 870, NULL },
-	  { "A4", 0, 1403, 992, "\x1B&l4096a26a6d1E" },
-	  { "LETTER", 0, 1320, 1020, "\x1B&l4096a2a6d1E" },
-	  { "LEGAL", 0, 1680, 1020, "\x1B&l4096a3a6d1E" }
+	  { "MONARCH",    900,  465, NULL},
+	  { "COM10",     1140,  495, NULL },
+	  { "A6",         701,  496, "\x1B&ll4096a24a6d1E" },
+	  { "DL",        1039,  520, NULL },
+	  { "B6",         832,  590, NULL },
+	  { "A5",         992,  701, "\x1B&l4096a25a6d1E" },
+	  { "C5",        1082,  767, NULL },
+	  { "B5",        1180,  832, NULL },
+	  { "JISB5",     1214,  860, NULL },
+	  { "EXECUTIVE", 1260,  870, NULL },
+	  { "A4",        1403,  992, "\x1B&l4096a26a6d1E" }, // 10
+	  { "LETTER",    1320, 1020, "\x1B&l4096a2a6d1E" },
+	  { "LEGAL",     1680, 1020, "\x1B&l4096a3a6d1E" }
 	};
 
 	for(int i = 0; i <= 12; ++i)
 	{
-		if(paper_sizes_data[i].sizea >= sizea && (int16_t)(paper_sizes_data[i].sizeb) >= sizeb )
+		if(paper_sizes_data[i].sizea >= sizea && paper_sizes_data[i].sizeb >= sizeb )
 		{
 			*a1 = &paper_sizes_data[i];
 			*act_sizeb = (int16_t)(paper_sizes_data[i].sizeb);
-			if ( extra_string && *extra_string )
-			*extra_string = paper_sizes_data[i].extra_string;
-			if ( i == 10 )
-			*act_sizeb = 3 * (*act_sizeb - sizeb);
+			if(extra_string && *extra_string)
+				*extra_string = paper_sizes_data[i].extra_string;
+			if(i == 10)
+				*act_sizeb = 3 * (*act_sizeb - sizeb);
 			return 1;
 		}
 	}
@@ -308,7 +309,7 @@ int parse_copies(const char *value, int *out)
 
 int parse_sleep_time(const char *value, int *out)
 {
-	if(!strcmp(value, "PRINTER")) // Printer default
+	if(!strcmp(value, "PrinterDefault")) // Printer default
 	{
 		*out = 0;
 	}
@@ -395,27 +396,27 @@ int read_two_numbers_after_paper_size(FILE *stream, int paper_size, int *sizea, 
 
 int read_selection_item()
 {
-	char strbuf[1024]; // [sp+20h] [bp-418h]@2
+	char strbuf[1025]; // [sp+20h] [bp-418h]@2
 	size_t size; // [sp+424h] [bp-14h]@5
 	int i; // [sp+428h] [bp-10h]@10
 	char *s; // [sp+42Ch] [bp-Ch]@7
 	char *v6; // [sp+430h] [bp-8h]@13
 
-	request_valid_values* v2 = &GlobalStruct1;
+	valid_values_entry* curr = &valid_values;
 	while(get_default_req(strbuf, 1024) && strbuf != strstr(strbuf, "[SelectionItem]"));
 	while(get_default_req(strbuf, 1024) )
 	{
 		size = strlen(strbuf);
 		++size;
-		v2->parname = (char *)calloc(1u, size);
-		if ( !v2->parname )
+		curr->parname = (char *)calloc(1u, size) + 1;
+		if ( !curr->parname )
 			break;
-		v2->next = (request_valid_values *)calloc(0x90u, 1u);
-		if ( !v2->next )
+		curr->next = (valid_values_entry *)(calloc(sizeof(valid_values_entry) /*0x90*/, 1u));
+		if ( !curr->next )
 			break;
-		strcpy(v2->parname, strbuf);
-		v2->string2 = v2->parname;
-		s = strchr(v2->parname, '=');
+		strcpy(curr->parname, strbuf);
+		curr->string2 = curr->parname;
+		s = strchr(curr->parname, '=');
 		if ( s )
 		{
 			*s++ = 0;
@@ -428,7 +429,7 @@ int read_selection_item()
 					for ( i = 0; i <= 31; ++i )
 					{
 						if ( *s )
-							v2->argv[i] = s;
+							curr->argv[i] = s;
 						v6 = s;
 						s = strchr(s, ',');
 						if ( !s )
@@ -442,21 +443,21 @@ int read_selection_item()
 						}
 						*s++ = 0;
 					}
-					v2->argc = i;
-					v2 = v2->next;
+					curr->argc = i;
+					curr = curr->next;
 					if ( strbuf[0] == '[' )
 						break;
 				}
 			}
 		}
 	}
-	v2->next = 0;
+	curr->next = 0;
 	return 0;
 }
 
 int check_config_validity(const char *s2, const char *s1)
 {
-	request_valid_values *obj = &GlobalStruct1; // [sp+1Ch] [bp-Ch]@1
+	valid_values_entry *obj = &valid_values; // [sp+1Ch] [bp-Ch]@1
 	bool found = 0;
 	int i; // [sp+24h] [bp-4h]@4
 

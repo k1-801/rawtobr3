@@ -1,11 +1,13 @@
 ﻿#include "rawtobr3.h"
 
+int debfiles = 0;
+
 int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4);
 
 int main(int argc, char **argv)
 {
 	// Can also be some kind of a struct
-	int a4[4]; // [sp+54h] [bp-3C4h]@43
+	int tray_params[5]; // [sp+54h] [bp-3C4h]@43
 
 	// Args
 	char func[255]; // [sp+6Bh] [bp-3ADh]@3
@@ -30,28 +32,28 @@ int main(int argc, char **argv)
 
 	for ( config.parsed_argc = 1; config.parsed_argc < argc; ++config.parsed_argc )
 	{
-		if(!strncmp(argv[config.parsed_argc], "-pi", 4))
+		if(!strcmp(argv[config.parsed_argc], "-pi"))
 		{
 			++config.parsed_argc;
 			strcpy(paperinf, config.argv[config.parsed_argc]);
 		}
 		else
 		{
-			if(!strncmp(config.argv[config.parsed_argc], "-rc", 4))
+			if(!strcmp(config.argv[config.parsed_argc], "-rc"))
 			{
 				++config.parsed_argc;
 				strcpy(rcfile, config.argv[config.parsed_argc]);
 			}
 			else
 			{
-				if(!strncmp(config.argv[config.parsed_argc], "-func", 6))
+				if(!strcmp(config.argv[config.parsed_argc], "-func"))
 				{
 					++config.parsed_argc;
 					strcpy(func, config.argv[config.parsed_argc]);
 				}
 				else
 				{
-					if(!strncmp(config.argv[config.parsed_argc], "-flags", 7))
+					if(!strcmp(config.argv[config.parsed_argc], "-flags"))
 					{
 						++config.parsed_argc;
 						config.flags_len = strlen(config.argv[config.parsed_argc]);
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
 	// Argv parsing is done
 	// Open configs
 	config.conf_stream = fopen(rcfile, "rt");
-	if ( !config.conf_stream )
+	if(!config.conf_stream)
 	{
 		return report_error(1, rcfile);
 	}
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
 	{
 		return report_error(2, 0);
 	}
-	if ( !func[0] )
+	if(!func[0])
 	{
 		config.conf_fname_len = strlen(rcfile);
 		if(config.conf_fname_len > 253)
@@ -95,7 +97,7 @@ int main(int argc, char **argv)
 		strcpy(func, rcfile);
 		strcpy(func + config.conf_fname_len - 2, "cnuf");
 	}
-	if ( fill_tray_params(func, a4) )
+	if(fill_tray_params(func, tray_params))
 	{
 		return report_error(2, 0);
 	}
@@ -133,57 +135,49 @@ int main(int argc, char **argv)
 	// Resolution parsing is done
 	config.ps_n1_copy = config.ps_n1;
 	config.ps_n2_copy = config.ps_n2;
-	do_the_job(config.stream_in, config.stream_out, &config, a4);
+	do_the_job(config.stream_in, config.stream_out, &config, tray_params);
 	return 0;
 }
 
 int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 {
 	converted_1 converted; // [sp+26h] [bp-62h]@1
-	uint8_t *alloc_1; // [sp+48h] [bp-40h]@1
-	uint8_t *ptr; // [sp+4Ch] [bp-3Ch]@18
-	int ps_n1; // [sp+50h] [bp-38h]@1
-	uint32_t ps_n2; // [sp+54h] [bp-34h]@1
-	size_t size; // [sp+58h] [bp-30h]@1
-	uint16_t i; // [sp+62h] [bp-26h]@18
-	size_t alloc_1_read_total; // [sp+64h] [bp-24h]@17
-	size_t v15; // [sp+68h] [bp-20h]@12
-	size_t v22; // [sp+84h] [bp-4h]@28
+	size_t alloc_1_read_total;
 
-	ps_n1 = config->ps_n1;
-	ps_n2 = config->ps_n2;
-	converted.field_2 = a4[3];
-	converted.field_4 = a4[4];
+	uint32_t ps_n1 = config->ps_n1;
+	uint32_t ps_n2 = config->ps_n2;
+	converted.always_3 = a4[3]; // 3
+	converted.field_4 = a4[4]; // Unknown and unused
 
-	size = ps_n2 * ((ps_n1 + 7) / 8);
-	alloc_1 = (uint8_t *)malloc(size);
+	size_t size = ps_n2 * ((ps_n1 + 7) / 8);
+	uint8_t* alloc_1 = (uint8_t *)malloc(size);
 	if(alloc_1)
 	{
 		global_alloc_2 = (uint8_t *)(malloc(5 * ps_n1 / 8));
 		if(global_alloc_2)
 		{
 			global_alloc_3 = (uint8_t*)(malloc(1300u));
-			if ( global_alloc_3 )
+			if(global_alloc_3)
 			{
 				global_alloc_4 = (uint8_t*)(malloc(16448u));
 				if(global_alloc_4)
 				{
 					converted_2 = &converted;
 					convert_config(&converted, config);
-					if ( converted_2->field_2 == 3 )
+					if ( converted_2->always_3 == 3 ) // Always true
 					{
 						send_job_headers(stream_out);
 						while(1)
 						{
-							v15 = (uint32_t)(ps_n1 + 7) >> 3;// (ps_n1 + 7) / 8 : divide with ceiling-rounding
+							size_t v15 = (uint32_t)(ps_n1 + 7) >> 3;
 							alloc_1_read_total = 0;
 
-							ptr = alloc_1;                  // Always reached
-							for ( i = 0; i < ps_n2; ++i )
+							uint8_t* ptr = alloc_1;
+							for(uint32_t i = 0; i < ps_n2; ++i)
 							{
-								v22 = fread(ptr, 1u, v15, stream_in);
+								size_t v22 = fread(ptr, 1u, v15, stream_in);
 								if ( v22 != v15 )
-								break;
+									break;
 								ptr += v22;
 								alloc_1_read_total += v22;
 							}

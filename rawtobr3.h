@@ -1,4 +1,7 @@
-﻿#include <stdio.h>
+﻿#ifndef RAWTOBR3_H
+#define RAWTOBR3_H
+
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -49,28 +52,27 @@ struct config_store
   int field_0;
 };
 
-struct request_valid_values
+struct valid_values_entry
 {
   char *parname;
   char *string2;
   char *argv[32];
   int argc;
-  request_valid_values *next;
+  valid_values_entry *next;
 };
 
 struct paper_size
 {
   char PaperSizeName[16];
-  uint16_t field_10;
-  uint16_t sizea;
-  uint32_t sizeb;
+  size_t sizea;
+  size_t sizeb;
   const char *extra_string;
 };
 
 struct converted_1
 {
   uint16_t field_0;
-  uint16_t field_2;
+  uint16_t always_3;
   uint16_t field_4;
   uint16_t sourcetray;
   int16_t resolution;
@@ -80,9 +82,9 @@ struct converted_1
   uint16_t duplex;
   uint16_t always_1;
   uint16_t duplex_type;
-  uint16_t ps_n2;
-  uint16_t ps_n1;
-  uint16_t field_1A;
+  uint16_t sizea;
+  uint16_t sizeb;
+  uint16_t converted_sizeb;
   uint16_t sleep_time;
   uint16_t copies;
   uint16_t field_20;
@@ -148,3 +150,7 @@ extern char flags[32];
 extern char nonzero_found_1;
 
 #include "decls.h"
+
+#define debug(x,y,z) {FILE* df = fopen("/tmp/bro_log.txt", "a"); fprintf(df, x, y, z); fclose(df);}
+
+#endif

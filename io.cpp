@@ -1,6 +1,5 @@
 ﻿#include "rawtobr3.h"
 
-
 uint8_t* global_alloc_2;
 uint8_t* global_alloc_3;
 uint8_t* global_alloc_4;
@@ -20,222 +19,213 @@ uint8_t *last_sent_row;
 uint16_t row_width_0;
 char nonzero_found_1;
 
-//----- (080496C4) --------------------------------------------------------
 int send_job_headers(FILE *stream)
 {
-	char v2[65]; // [sp+4Fh] [bp-69h]@47
-	char s[16]; // [sp+94h] [bp-24h]@41
-	paper_size *ps; // [sp+A4h] [bp-14h]@42
-	int a4; // [sp+A8h] [bp-10h]@42
-	int n; // [sp+B0h] [bp-8h]@44
+	paper_size *ps;
 
-	fwrite_size_preceded(stream, "\x0E\x1B%-12345X@PJL\n");
+	fputs("\e%-12345X@PJL\n", stream);
 	if ( !((flags[0] - '0') & 1) )
-	fwrite_size_preceded(stream, "\x1F@PJL JOB NAME=\"Brother HL-XXX\"\n");
+	fputs("@PJL JOB NAME=\"Brother HL-XXX\"\n", stream);
 	switch ( converted_2->resolution )
 	{
 		case 3:
-			fwrite_size_preceded(stream, "8@PJL SET RESOLUTION = 1200\n@PJL SET PAPERFEEDSPEED=HALF\n");
+			fputs("@PJL SET RESOLUTION = 1200\n@PJL SET PAPERFEEDSPEED=HALF\n", stream);
 			break;
 		case 4:
-			fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 600\n");
-			fwrite_size_preceded(stream, "\x1C@PJL SET RAS1200MODE = TRUE\n");
+			fputs("@PJL SET RESOLUTION = 600\n", stream);
+			fputs("@PJL SET RAS1200MODE = TRUE\n", stream);
 			break;
 		case 5:
-			fwrite_size_preceded(stream, "8@PJL SET RESOLUTION = 1200\n@PJL SET PAPERFEEDSPEED=FULL\n");
+			fputs("@PJL SET RESOLUTION = 1200\n@PJL SET PAPERFEEDSPEED=FULL\n", stream);
 			break;
 		case 6:
-			fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 600\n");
+			fputs("@PJL SET RESOLUTION = 600\n", stream);
 			break;
 		case 2:
 			if(!(((flags[1] - '0') >> 1) & 1))
-				fwrite_size_preceded(stream, "\x1B@PJL SET RAS1200MODE = OFF\n");
+				fputs("@PJL SET RAS1200MODE = OFF\n", stream);
 			if((flags[1] - '0') & 1)
 			{
-				fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 600\n");
-				fwrite_size_preceded(stream, "\x16@PJL SET HQMMODE = ON\n");
+				fputs("@PJL SET RESOLUTION = 600\n", stream);
+				fputs("@PJL SET HQMMODE = ON\n", stream);
 			}
 			else
 			{
-				fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 600\n");
+				fputs("@PJL SET RESOLUTION = 600\n", stream);
 			}
 			break;
 		case 1:
 			if(!(((flags[1] - '0') >> 1) & 1))
-				fwrite_size_preceded(stream, "\x1B@PJL SET RAS1200MODE = OFF\n");
-			fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 300\n");
+				fputs("@PJL SET RAS1200MODE = OFF\n", stream);
+			fputs("@PJL SET RESOLUTION = 300\n", stream);
 			break;
 		default:
 			if(!(((flags[1] - '0') >> 1) & 1))
-				fwrite_size_preceded(stream, "\x1B@PJL SET RAS1200MODE = OFF\n");
-			fwrite_size_preceded(stream, "\x1A@PJL SET RESOLUTION = 600\n");
+				fputs("@PJL SET RAS1200MODE = OFF\n", stream);
+			fputs("@PJL SET RESOLUTION = 600\n", stream);
 			break;
 	}
 	if ( converted_2->toner_save )
-		fwrite_size_preceded(stream, "\x18@PJL SET ECONOMODE = ON\n");
+		fputs("@PJL SET ECONOMODE = ON\n", stream);
 	else
-		fwrite_size_preceded(stream, "\x19@PJL SET ECONOMODE = OFF\n");
+		fputs("@PJL SET ECONOMODE = OFF\n", stream);
 	if ( converted_2->sourcetray != 6 )
 	{
 		switch ( converted_2->sourcetray )
 		{
 			case 1:
-				fwrite_size_preceded(stream, "\x1C@PJL SET SOURCETRAY = TRAY1\n");
+				fputs("@PJL SET SOURCETRAY = TRAY1\n", stream);
 				break;
 			case 2:
-				fwrite_size_preceded(stream, "\x1C@PJL SET SOURCETRAY = TRAY2\n");
+				fputs("@PJL SET SOURCETRAY = TRAY2\n", stream);
 				break;
 			case 3:
-				fwrite_size_preceded(stream, "\x1C@PJL SET SOURCETRAY = TRAY3\n");
+				fputs("@PJL SET SOURCETRAY = TRAY3\n", stream);
 				break;
 			case 4:
-				fwrite_size_preceded(stream, "\x1C@PJL SET SOURCETRAY = TRAY4\n");
+				fputs("@PJL SET SOURCETRAY = TRAY4\n", stream);
 				break;
 			case 5:
-				fwrite_size_preceded(stream, "\x1C@PJL SET SOURCETRAY = TRAY5\n");
+				fputs("@PJL SET SOURCETRAY = TRAY5\n", stream);
 				break;
 			case 7:
-				fwrite_size_preceded(stream, "\x1D@PJL SET SOURCETRAY = MPTRAY\n");
+				fputs("@PJL SET SOURCETRAY = MPTRAY\n", stream);
 				break;
 			default:
-				fwrite_size_preceded(stream, "\x1B@PJL SET SOURCETRAY = AUTO\n");
+				fputs("@PJL SET SOURCETRAY = AUTO\n", stream);
 				break;
 		}
 	}
 	switch(converted_2->mediatype)
 	{
 		case 1:
-			fwrite_size_preceded(stream, "\x1A@PJL SET MEDIATYPE = THIN\n");
+			fputs("@PJL SET MEDIATYPE = THIN\n", stream);
 			break;
 		case 2:
-			fwrite_size_preceded(stream, "\x1B@PJL SET MEDIATYPE = THICK\n");
+			fputs("@PJL SET MEDIATYPE = THICK\n", stream);
 			break;
 		case 3:
 		case 4:
-			fwrite_size_preceded(stream, "\x1C@PJL SET MEDIATYPE = THICK2\n");
+			fputs("@PJL SET MEDIATYPE = THICK2\n", stream);
 			break;
 		case 5:
-			fwrite_size_preceded(stream, "\"@PJL SET MEDIATYPE = TRANSPARENCY\n");
+			fputs("@PJL SET MEDIATYPE = TRANSPARENCY\n", stream);
 			break;
 		case 6:
-			fwrite_size_preceded(stream, "\x1F@PJL SET MEDIATYPE = ENVELOPES\n");
+			fputs("@PJL SET MEDIATYPE = ENVELOPES\n", stream);
 			break;
 		case 7:
-			fwrite_size_preceded(stream, "\x1E@PJL SET MEDIATYPE = ENVTHICK\n");
+			fputs("@PJL SET MEDIATYPE = ENVTHICK\n", stream);
 			break;
 		case 9:
-			fwrite_size_preceded(stream, "\x1E@PJL SET MEDIATYPE = RECYCLED\n");
+			fputs("@PJL SET MEDIATYPE = RECYCLED\n", stream);
 			break;
 		default:
-			fwrite_size_preceded(stream, "\x1D@PJL SET MEDIATYPE = REGULAR\n");
+			fputs("@PJL SET MEDIATYPE = REGULAR\n", stream);
 	}
 	if ( converted_2->sleep_time )
 	{
-		fwrite_size_preceded(stream, "\x17@PJL DEFAULT AUTOSLEEP=");
-		fwrite_size_preceded(stream, "\x03ON\n");
-		fwrite_size_preceded(stream, "\x1A@PJL DEFAULT TIMEOUTSLEEP=");
-		sprintf(s, "%d\n", converted_2->sleep_time);
-		fwrite_wrapper(stream, s, strlen(s));
-		fwrite_size_preceded(stream, "\x13@PJL SET AUTOSLEEP=");
-		fwrite_size_preceded(stream, "\x03ON\n");
-		fwrite_size_preceded(stream, "\x16@PJL SET TIMEOUTSLEEP=");
-		fwrite_wrapper(stream, s, strlen(s));
+		fprintf(stream,
+				"@PJL DEFAULT AUTOSLEEP=ON\n"
+				"@PJL DEFAULT TIMEOUTSLEEP=%d\n"
+				"@PJL SET AUTOSLEEP=ON\n"
+				"@PJL SET TIMEOUTSLEEP=%d\n",
+				converted_2->sleep_time,
+				converted_2->sleep_time);
 	}
 
-	const char* src;
-	find_paper_size_0(&ps, converted_2->ps_n2, converted_2->ps_n1, &a4, &src);
-	fwrite_size_preceded(stream, " @PJL SET ORIENTATION = PORTRAIT\n");
+	const char* src = "dummy";
+	int act_sizeb;
+	fetch_paper(&ps, converted_2->sizea, converted_2->sizeb, &act_sizeb, &src);
+	fputs("@PJL SET ORIENTATION = PORTRAIT\n", stream);
 	if(!src || !*src)
 	{
-		fwrite_size_preceded(stream, "\x11@PJL SET PAPER = ");
-		n = strlen(ps->PaperSizeName);
-		fwrite_wrapper(stream, ps, n);
-		fwrite_size_preceded(stream, "\x01\n");
+		fprintf(stream, "@PJL SET PAPER = %s\n", ps->PaperSizeName);
 	}
-	fwrite_size_preceded(stream, "\x1C@PJL SET PAGEPROTECT = AUTO\n");
-	fwrite_size_preceded(stream, "\x1A@PJL ENTER LANGUAGE = PCL\n");
-	fwrite_size_preceded(stream, "\x02\eE");    // Reset the perimeter
+
+	fputs("@PJL SET PAGEPROTECT = AUTO\n", stream);
+	fputs("@PJL ENTER LANGUAGE = PCL\n", stream);
+	fputs("\eE", stream);    // Reset the perimeter
 	if(src && *src)
 	{
-		v2[0] = strlen(src);
-		strncpy(v2 + 1, src, 0x3Fu);
-		fwrite_size_preceded(stream, v2);
+		fprintf(stream, "%s", src);
 	}
 	switch ( converted_2->resolution )
 	{
-		case 4:
-			fwrite_size_preceded(stream, "\b\x1B&u1200D");
-			fwrite_size_preceded(stream, "\a\x1B*t600R");
+		case 0:
+			fputs("\e&u150D", stream);
+			fputs("\e*t150R", stream);
 			break;
-		case 5:
-		case 3:
-			fwrite_size_preceded(stream, "\b\x1B&u1200D");
-			fwrite_size_preceded(stream, "\b\x1B*t1200R");
+		case 1:
+			fputs("\e&u300D", stream);
+			fputs("\e*t300R", stream);
 			break;
 		case 2:
 		case 6:
-			fwrite_size_preceded(stream, "\a\x1B&u600D");
-			fwrite_size_preceded(stream, "\a\x1B*t600R");
+			fputs("\e&u600D", stream);
+			fputs("\e*t600R", stream);
 			break;
-		case 1:
-			fwrite_size_preceded(stream, "\a\x1B&u300D");
-			fwrite_size_preceded(stream, "\a\x1B*t300R");
+		case 3:
+		case 5:
+			fputs("\e&u1200D", stream);
+			fputs("\e*t1200R", stream);
 			break;
-		case 0:
-			fwrite_size_preceded(stream, "\a\x1B&u150D");
-			fwrite_size_preceded(stream, "\a\x1B*t150R");
-			break;
-		default:
+		case 4:
+			fputs("\e&u1200D", stream);
+			fputs("\e*t600R" , stream);
 			break;
 	}
+
 	if(converted_2->sourcetray == 6)
-		fwrite_size_preceded(stream, "\x05\x1B&l2H");
+		fputs("\e&l2H", stream);
+
 	if(converted_2->copies > 1)
 	{
-		fwrite_size_preceded(stream, "\x03\x1B&l");
-		sprintf(s, "%dX", converted_2->copies);
-		fwrite_wrapper(stream, s, strlen(s));
+		fprintf(stream, "\e&l%dX", converted_2->copies);
 	}
 	if(converted_2->duplex)
 	{
-		if ( converted_2->duplex_type )
-			return fwrite_size_preceded(stream, "\x05\x1B&l1S");
+		if(converted_2->duplex_type)
+			return !fputs("\e&l1S", stream);
 		else
-			return fwrite_size_preceded(stream, "\x05\x1B&l2S");
+			return !fputs("\e&l2S", stream);
 	}
 	return 0;
 }
 
-void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2)
+void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int orig_height)
 {
 	uint8_t v6; // [sp+27h] [bp-21h]@30
 	int send_size_2; // [sp+2Ch] [bp-1Ch]@30
 	int send_size_1; // [sp+30h] [bp-18h]@47
 	uint8_t *data_logical; // [sp+38h] [bp-10h]@7
-	uint16_t v11; // [sp+3Eh] [bp-Ah]@35
+	uint16_t converted_sizeb; // [sp+3Eh] [bp-Ah]@35
 	uint16_t v13; // [sp+42h] [bp-6h]@35
 	int v14; // [sp+44h] [bp-4h]@14
 
-	int16_t row_width_2 = (uint32_t)(ps_n1 + 7) >> 3;// Always reached
+	int16_t row_width_2 = (uint32_t)(orig_width + 7) >> 3;// Always reached
 	row_width = row_width_2;
+
+	static int iteration = 0;
+	++iteration;
 
 	switch ( converted_2->resolution )
 	{
 		case 1:
 		  data_logical = &data[50 * row_width_2];
-		  ps_n2 -= 100;
+		  orig_height -= 100;
 		  break;
 		case 2:
 		  data_logical = &data[100 * row_width_2];
-		  ps_n2 -= 200;
+		  orig_height -= 200;
 		  break;
 		case 6:
 		  data_logical = &data[50 * row_width_2];
-		  ps_n2 -= 100;
+		  orig_height -= 100;
 		  break;
 		default:
 		  data_logical = &data[200 * row_width_2];
-		  ps_n2 -= 400;
+		  orig_height -= 400;
 		  break;
 	}
 	switch ( converted_2->resolution )
@@ -268,7 +258,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2)
 	//if(1 || nonzero_found_1)
 	{
 		v13 = 624;
-		v11 = converted_2->field_1A;
+		converted_sizeb = converted_2->converted_sizeb;
 		if(converted_2->resolution == 1)
 		{
 			v13 /= 2;
@@ -277,9 +267,9 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2)
 		{
 			v13 *= 2;
 		}
-		if(v11 + row_width > v13 )
-			row_width = v13 - v11;
-		for(int i = 0; i <= ps_n2; ++i)
+		if(row_width > v13 - converted_sizeb)
+			row_width = v13 - converted_sizeb;
+		for(int i = 0; i <= orig_height; ++i)
 		{
 			sending_row = &data_logical[v14];
 			if(converted_2->resolution == 4 && i & 1)
@@ -305,7 +295,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2)
 						row_width_0 = row_width;
 						bitwise_invert(sending_row, last_sent_row, row_width);// The whole row is in bitwise-inverted state present somewhere in ga_3
 					}
-					sub_804A48C();
+					convert_ga3_t();
 					send_size_1 = sendbuf_size;
 					if ( sendbuf_size )
 					{
@@ -346,37 +336,35 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2)
 	}*/
 }
 
-int fwrite_size_preceded(FILE *s, const char *a2)
+int fwrite_size_preceded(FILE *s, const char* a2)
 {
-  size_t n; // ST24_4@2
-  int16_t v4; // [sp+20h] [bp-8h]@1
+	size_t n; // ST24_4@2
 
-  v4 = 0;
-  if ( *a2 > 0 )
-  {
-	n = *a2;
-	if ( fwrite(a2 + 1, 1u, n, s) != n )
-	  v4 = 1;
-  }
-  return v4;
+	if(*a2 > 0)
+	{
+		n = *a2;
+		if(fwrite(a2 + 1, 1u, n, s) != n)
+			return 1;
+	}
+	return 0;
 }
 
 int fwrite_wrapper(FILE *stream, void *data, size_t n)
 {
-	return (n && fwrite(data, 1u, n, stream) != n);
+	return (n && fwrite(data, 1, n, stream) != n);
 }
 
 char buffered_send(FILE *a1, int* size_ptr, uint8_t* data)
 {
-  int size; // [sp+20h] [bp-8h]@1
+	int size; // [sp+20h] [bp-8h]@1
 
-  size = *size_ptr;
-  if(size + ga4_size > 0x4000 || ga4_appends > 127)
-	flush_ga4(a1);
-  memcpy(global_alloc_4 + ga4_size, data, size);
-  ga4_size += size;
-  ++ga4_appends;
-  return ++ga4_preceeder;
+	size = *size_ptr;
+	if(size + ga4_size > 0x4000 || ga4_appends > 127)
+		flush_ga4(a1);
+	memcpy(global_alloc_4 + ga4_size, data, size);
+	ga4_size += size;
+	++ga4_appends;
+	return ++ga4_preceeder;
 }
 
 int flush_ga4(FILE *stream)
@@ -384,7 +372,10 @@ int flush_ga4(FILE *stream)
 	int result = ga4_size;
 	if(result)
 	{
-		fprintf(stream, "%zu%cw%c%c", ga4_size + 2, 1, 0, ga4_preceeder);
+		fprintf(stream, "%zu" "%cw" "%c%c", ga4_size + 2, 1, 0, ga4_preceeder);
+		result = fwrite_wrapper(stream, global_alloc_4, ga4_size);
 	}
+	ga4_size = 0;
+	ga4_preceeder = 0;
 	return result;
 }
