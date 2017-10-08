@@ -10,9 +10,8 @@
 char* get_default_req(char *dest, size_t limit);
 int send_job_headers(FILE *);
 void send_converted_data(FILE *stream_out, uint8_t *data, int ps_n1, int ps_n2);
-char buffered_send(FILE *a1, int *size_ptr, uint8_t* data);
+char buffered_send(FILE *a1, int *size_ptr, const uint8_t* data);
 int flush_ga4(FILE *stream);
-int fwrite_size_preceded(FILE *s, const char *);
 // Unknown
 void convert_ga3_t();
 void convert_3(uint8_t *data, uint16_t a2, uint16_t a3, uint16_t *changed);

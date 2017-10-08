@@ -249,7 +249,7 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 	// Looks like a global struct initialization?..
 	ga_2 = global_alloc_2;
 	ga_3 = global_alloc_3;
-	fputs("\e*b1030m", stream_out);// Unknown PCL command \e*b1030m
+	fputs("\e*b1030m", stream_out); // Unknown PCL command \e*b1030m
 	ga4_size = 0;
 	ga4_appends = 0;
 	ga4_preceeder = 0;
@@ -283,26 +283,31 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 				send_size_1 = row_width;
 				if(is_all_zeroes(sending_row, row_width))
 				{
+					debug("[%d] Is all zeroes\n", i, 0);
 					send_size_2 = 1;
 					v6 = 0xFFu;
 					buffered_send(stream_out, &send_size_2, &v6);
 				}
 				else
 				{
-					if(ga4_appends < 127 || !i)
+					if(!(ga4_appends % 128) || !i)
 					{
+						debug("[%d] Was reversed\n", i, 0);
 						last_sent_row = ga_2 + (2 * row_width) + (row_width >> 1);
 						row_width_0 = row_width;
 						bitwise_invert(sending_row, last_sent_row, row_width);// The whole row is in bitwise-inverted state present somewhere in ga_3
 					}
+					debug("[%d] Came to convert_1\n", i, 0);
 					convert_ga3_t();
 					send_size_1 = sendbuf_size;
 					if(sendbuf_size)
 					{
+						debug("[%d] Was sent\n", i, 0);
 						buffered_send(stream_out, &send_size_1, ga_2);
 					}
 					else
 					{
+						debug("[%d] Sent 0\n", i, 0);
 						send_size_2 = 1;
 						v6 = 0;
 						buffered_send(stream_out, &send_size_2, &v6);
@@ -336,26 +341,16 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 	}*/
 }
 
-int fwrite_size_preceded(FILE *s, const char* a2)
-{
-	size_t n; // ST24_4@2
-
-	if(*a2 > 0)
-	{
-		n = *a2;
-		if(fwrite(a2 + 1, 1u, n, s) != n)
-			return 1;
-	}
-	return 0;
-}
-
-char buffered_send(FILE *a1, int* size_ptr, uint8_t* data)
+char buffered_send(FILE *a1, int* size_ptr, const uint8_t* data)
 {
 	int size; // [sp+20h] [bp-8h]@1
 
 	size = *size_ptr;
-	if(size + ga4_size > 0x4000 || ga4_appends > 127)
+	if(size + ga4_size > 0x4000 || !(ga4_appends % 128))
+	{
+		debug("Flushing for reason 1 (%d, %d)\n", size, ga4_appends);
 		flush_ga4(a1);
+	}
 	memcpy(global_alloc_4 + ga4_size, data, size);
 	ga4_size += size;
 	++ga4_appends;
