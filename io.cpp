@@ -1,23 +1,16 @@
 ﻿#include "rawtobr3.h"
 
-uint8_t* global_alloc_2;
-uint8_t* global_alloc_3;
-uint8_t* global_alloc_4;
-
 size_t ga4_size;
-uint8_t *ga_2;
-uint8_t *ga_3;
 uint16_t ga4_appends;
 uint8_t ga4_preceeder;
 
 char flags[32] = {0};
 
-uint16_t row_width;
-uint16_t sendbuf_size;
-uint8_t *sending_row;
-uint8_t *last_sent_row;
-uint16_t row_width_0;
-char nonzero_found_1;
+size_t row_width;
+size_t sendbuf_size;
+uint8_t* sending_row;
+uint8_t* last_sent_row;
+size_t row_width_0;
 
 int send_job_headers(FILE *stream)
 {
@@ -123,7 +116,7 @@ int send_job_headers(FILE *stream)
 		default:
 			fputs("@PJL SET MEDIATYPE = REGULAR\n", stream);
 	}
-	if ( converted_2->sleep_time )
+	if(converted_2->sleep_time)
 	{
 		fprintf(stream,
 				"@PJL DEFAULT AUTOSLEEP=ON\n"
@@ -193,17 +186,10 @@ int send_job_headers(FILE *stream)
 	return 0;
 }
 
-void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int orig_height)
+void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, size_t orig_height)
 {
-	uint8_t v6; // [sp+27h] [bp-21h]@30
-	int send_size_2; // [sp+2Ch] [bp-1Ch]@30
-	int send_size_1; // [sp+30h] [bp-18h]@47
-	uint8_t *data_logical; // [sp+38h] [bp-10h]@7
-	uint16_t converted_sizeb; // [sp+3Eh] [bp-Ah]@35
-	uint16_t v13; // [sp+42h] [bp-6h]@35
-	int v14; // [sp+44h] [bp-4h]@14
-
-	int16_t row_width_2 = (uint32_t)(orig_width + 7) >> 3;// Always reached
+	uint8_t* data_logical;
+	size_t row_width_2 = (orig_width + 7) >> 3;// Always reached
 	row_width = row_width_2;
 
 	static int iteration = 0;
@@ -228,6 +214,8 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 		  orig_height -= 400;
 		  break;
 	}
+
+	int v14;
 	switch(converted_2->resolution)
 	{
 		case 1:
@@ -246,9 +234,6 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 			break;
 	}
 
-	// Looks like a global struct initialization?..
-	ga_2 = global_alloc_2;
-	ga_3 = global_alloc_3;
 	fputs("\e*b1030m", stream_out); // Unknown PCL command \e*b1030m
 	ga4_size = 0;
 	ga4_appends = 0;
@@ -257,8 +242,8 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 	// This statement should ALWAYS be true, so it's commented out
 	//if(1 || nonzero_found_1)
 	{
-		v13 = 624;
-		converted_sizeb = converted_2->converted_sizeb;
+		size_t v13 = 624;
+		size_t converted_sizeb = converted_2->converted_sizeb;
 		if(converted_2->resolution == 1)
 		{
 			v13 /= 2;
@@ -269,48 +254,38 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 		}
 		if(row_width > v13 - converted_sizeb)
 			row_width = v13 - converted_sizeb;
-		for(int i = 0; i <= orig_height; ++i)
+		for(size_t i = 0; i <= orig_height; ++i)
 		{
 			sending_row = &data_logical[v14];
 			if(converted_2->resolution == 4 && i & 1)
 			{
-				send_size_2 = 1;
-				v6 = 0;
-				buffered_send(stream_out, &send_size_2, &v6);
+				uint8_t sb = 0;
+				buffered_send(stream_out, 1, &sb);
 			}
 			else
 			{
-				send_size_1 = row_width;
 				if(is_all_zeroes(sending_row, row_width))
 				{
-					debug("[%d] Is all zeroes\n", i, 0);
-					send_size_2 = 1;
-					v6 = 0xFFu;
-					buffered_send(stream_out, &send_size_2, &v6);
+					uint8_t sb = 0xFF;
+					buffered_send(stream_out, 1, &sb);
 				}
 				else
 				{
 					if(!(ga4_appends % 128) || !i)
 					{
-						debug("[%d] Was reversed\n", i, 0);
-						last_sent_row = ga_2 + (2 * row_width) + (row_width >> 1);
+						last_sent_row = gl_al_2 + (2 * row_width) + (row_width >> 1);
 						row_width_0 = row_width;
-						bitwise_invert(sending_row, last_sent_row, row_width);// The whole row is in bitwise-inverted state present somewhere in ga_3
+						bitwise_invert(sending_row, last_sent_row, row_width); // The whole row is in bitwise-inverted state present somewhere in ga_3
 					}
-					debug("[%d] Came to convert_1\n", i, 0);
-					convert_ga3_t();
-					send_size_1 = sendbuf_size;
+					convert_2();
 					if(sendbuf_size)
 					{
-						debug("[%d] Was sent\n", i, 0);
-						buffered_send(stream_out, &send_size_1, ga_2);
+						buffered_send(stream_out, sendbuf_size, gl_al_2);
 					}
 					else
 					{
-						debug("[%d] Sent 0\n", i, 0);
-						send_size_2 = 1;
-						v6 = 0;
-						buffered_send(stream_out, &send_size_2, &v6);
+						uint8_t sb = 0;
+						buffered_send(stream_out, 1, &sb);
 					}
 				}
 				last_sent_row = sending_row;
@@ -319,42 +294,23 @@ void send_converted_data(FILE *stream_out, uint8_t *data, int orig_width, int or
 			data_logical += row_width_2;
 			if ( converted_2->resolution == 6 )
 			{
-				send_size_2 = 1;
-				v6 = 0;
-				buffered_send(stream_out, &send_size_2, &v6);
+				uint8_t sb = 0;
+				buffered_send(stream_out, 1, &sb);
 			}
 		}
 	}
-	// This part is never executed, so it is commented out, but saved just in case something goes wrong
-	/*else
-	{
-		if(converted_2->resolution == 4 )
-			ps_n2 /= 2;
-		send_size_2 = 1;
-		v6 = 0xFF;
-		for(; ps_n2 >= 0; --ps_n2)
-		{
-			buffered_send(stream_out, &send_size_2, &v6);
-			if ( converted_2->resolution == 6 )
-				buffered_send(stream_out, &send_size_2, &v6);
-		}
-	}*/
 }
 
-char buffered_send(FILE *a1, int* size_ptr, const uint8_t* data)
+void buffered_send(FILE *a1, size_t size, const uint8_t* data)
 {
-	int size; // [sp+20h] [bp-8h]@1
-
-	size = *size_ptr;
 	if(size + ga4_size > 0x4000 || !(ga4_appends % 128))
 	{
-		debug("Flushing for reason 1 (%d, %d)\n", size, ga4_appends);
 		flush_ga4(a1);
 	}
-	memcpy(global_alloc_4 + ga4_size, data, size);
+	memcpy(gl_al_4 + ga4_size, data, size);
 	ga4_size += size;
 	++ga4_appends;
-	return ++ga4_preceeder;
+	++ga4_preceeder;
 }
 
 int flush_ga4(FILE *stream)
@@ -363,7 +319,7 @@ int flush_ga4(FILE *stream)
 	if(result)
 	{
 		fprintf(stream, "%zuw%c%c", ga4_size + 2, 0, ga4_preceeder);
-		result = fwrite(global_alloc_4, 1, ga4_size, stream);
+		result = fwrite(gl_al_4, 1, ga4_size, stream);
 	}
 	ga4_size = 0;
 	ga4_preceeder = 0;

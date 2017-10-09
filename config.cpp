@@ -357,7 +357,7 @@ int parse_config_string(const char *src, char *value)
 	return -1;
 }
 
-int read_two_numbers_after_paper_size(FILE *stream, int paper_size, int *sizea, int *sizeb)
+int get_pi_line(FILE *stream, int paper_size, int *sizea, int *sizeb)
 {
 	static const char* paper_sizes[] =
 	{
@@ -496,103 +496,85 @@ int fill_tray_params(char*, int *a2)
 
 char *fgets_line(char *s, int n, FILE *stream)
 {
-  char *v4; // [sp+20h] [bp-8h]@1
-  char *v5; // [sp+24h] [bp-4h]@2
+	char *v4; // [sp+20h] [bp-8h]@1
+	char *v5; // [sp+24h] [bp-4h]@2
 
-  v4 = fgets(s, n, stream);
-  if ( v4 )
-  {
-	v5 = strchr(s, 10);
-	if ( v5 )
-	  *v5 = 0;
-  }
-  return v4;
+	v4 = fgets(s, n, stream);
+	if(v4)
+	{
+		v5 = strchr(s, '\n');
+		if(v5)
+			*v5 = 0;
+	}
+	return v4;
 }
 
 int read_config(FILE *stream, config_store *conf)
 {
-  int32_t v3; // [sp+Ch] [bp-C9Ch]@3
-  char v4[112]; // [sp+24h] [bp-C84h]@1
-  char value[1024]; // [sp+9Dh] [bp-C0Bh]@1
-  char buf[1024]; // [sp+49Eh] [bp-80Ah]@1
-  char s[1024]; // [sp+89Fh] [bp-409h]@1
-  int v8; // [sp+CA0h] [bp-8h]@1
-  int v9; // [sp+CA4h] [bp-4h]@1
+	char value[1024] = {0};
+	char buf[1024] = {0};
+	char s[1024] = {0};
+	bool v9 = 0;
 
-  v8 = 0;
-  v9 = 0;
-  memset(s, 0, 0x401u);
-  memset(buf, 0, 0x401u);
-  memset(value, 0, 0x401u);
-  memset(v4, 0, 0x78u);
-  if ( stream && conf )
-  {
+	if(!stream || !conf)
+		return -1;
+
 	fseek(stream, 0, 0);
-	v8 = 1;
-	while ( fgets_line(s, 1024, stream) )
+	while(fgets_line(s, 1024, stream))
 	{
-	  truncate_spaces(s);
-	  if ( s[0] != '#' )                        // Ignore comments
-	  {
-		if ( s[0] == '[' )                      // Check sections
+		truncate_spaces(s);
+		if(s[0] != '#') // Ignore comments
 		{
-		  if ( v9 )
-			return -1;
-		  v9 = 1;
-		  if ( sscanf(s, "[%[^]]s", buf) == -1 )
-			return -1;
-		  strcpy(conf->somestring1, buf);
+			if(s[0] == '[') // Check sections
+			{
+				if(v9)
+					return -1;
+				v9 = 1;
+				if(sscanf(s, "[%[^]]s", buf) == -1)
+					return -1;
+				strcpy(conf->somestring1, buf);
+			}
+			else if(s[0])
+			{
+				if(!v9)
+					return -1;
+				switch(parse_config_string(s, value)) // returns param ID, sets s1 to param value
+				{
+					case 99:
+					  parse_lang(value, &conf->country_2);
+					  break;
+					case 0:
+					  parse_resolution(value, &conf->resolution);
+					  break;
+					case 1:
+					  parse_tray_1(value, &conf->tray_1);
+					  break;
+					case 2:
+					  parse_duplex(value, &conf->duplex);
+					  break;
+					case 3:
+					  parse_duplex_type(value, &conf->duplex_type);
+					  break;
+					case 4:
+					  parse_paper_size(value, &conf->paper_size);
+					  break;
+					case 5:
+					  parse_mediatype(value, &conf->mediatype);
+					  break;
+					case 6:
+					  parse_copies(value, &conf->copies);
+					  break;
+					case 7:
+					  parse_sleep_time(value, &conf->sleep_time);
+					  break;
+					case 8:
+					  parse_toner_save(value, &conf->toner_save);
+					  break;
+				}
+			}
 		}
-		else if ( s[0] )
-		{
-		  if ( !v9 )
-			return -1;
-		  switch ( parse_config_string(s, value) )// returns param ID, sets s1 to param value
-		  {
-			case 99:
-			  parse_lang(value, &conf->country_2);
-			  break;
-			case 0:
-			  parse_resolution(value, &conf->resolution);
-			  break;
-			case 1:
-			  parse_tray_1(value, &conf->tray_1);
-			  break;
-			case 2:
-			  parse_duplex(value, &conf->duplex);
-			  break;
-			case 3:
-			  parse_duplex_type(value, &conf->duplex_type);
-			  break;
-			case 4:
-			  parse_paper_size(value, &conf->paper_size);
-			  break;
-			case 5:
-			  parse_mediatype(value, &conf->mediatype);
-			  break;
-			case 6:
-			  parse_copies(value, &conf->copies);
-			  break;
-			case 7:
-			  parse_sleep_time(value, &conf->sleep_time);
-			  break;
-			case 8:
-			  parse_toner_save(value, &conf->toner_save);
-			  break;
-			default:
-			  break;
-		  }
-		}
-	  }
-	  ++v8;
 	}
-	v3 = 0;
-  }
-  else
-  {
-	v3 = -1;
-  }
-  return v3;
+	return 0;
 }
 
 char *truncate_spaces(char *s1)

@@ -129,25 +129,21 @@ struct struc_2
 };
 
 extern converted_1* converted_2;
-extern uint16_t row_width;
-extern uint16_t sendbuf_size;
+extern size_t row_width;
+extern size_t sendbuf_size;
 extern uint8_t *sending_row;
 extern uint8_t *last_sent_row;
-extern uint16_t row_width_0;
-
-extern uint8_t *ga_2;
-extern uint8_t *ga_3;
+extern size_t row_width_0;
 
 extern uint16_t ga4_appends;
 extern size_t ga4_size;
 
-extern uint8_t* global_alloc_2;
-extern uint8_t* global_alloc_3;
-extern uint8_t* global_alloc_4;
+extern uint8_t* gl_al_2;
+extern uint8_t* gl_al_3;
+extern uint8_t* gl_al_4;
 
 extern const char* config_fields_3[9];
 extern char flags[32];
-extern char nonzero_found_1;
 
 #include "decls.h"
 

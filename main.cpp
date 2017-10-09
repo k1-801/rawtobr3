@@ -1,6 +1,8 @@
 ﻿#include "rawtobr3.h"
 
-int debfiles = 0;
+uint8_t* gl_al_2;
+uint8_t* gl_al_3;
+uint8_t* gl_al_4;
 
 int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4);
 
@@ -106,7 +108,7 @@ int main(int argc, char **argv)
 	{
 		return report_error(1, paperinf);// Failed to open file
 	}
-	if ( read_two_numbers_after_paper_size(config.conf_stream, config.paper_size, &ps_n1, &ps_n2) )
+	if ( get_pi_line(config.conf_stream, config.paper_size, &ps_n1, &ps_n2) )
 	{
 		return report_error(2, 0);
 	}
@@ -153,14 +155,14 @@ int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 	uint8_t* alloc_1 = (uint8_t *)malloc(size);
 	if(alloc_1)
 	{
-		global_alloc_2 = (uint8_t *)(malloc(5 * ps_n1 / 8));
-		if(global_alloc_2)
+		gl_al_2 = (uint8_t *)(malloc(5 * ps_n1 / 8));
+		if(gl_al_2)
 		{
-			global_alloc_3 = (uint8_t*)(malloc(1300u));
-			if(global_alloc_3)
+			gl_al_3 = (uint8_t*)(malloc(1300u));
+			if(gl_al_3)
 			{
-				global_alloc_4 = (uint8_t*)(malloc(16448u));
-				if(global_alloc_4)
+				gl_al_4 = (uint8_t*)(malloc(16448u));
+				if(gl_al_4)
 				{
 					converted_2 = &converted;
 					convert_config(&converted, config);
@@ -199,12 +201,12 @@ int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 					// Cleanup
 					if ( alloc_1 )
 						free(alloc_1);
-					if ( global_alloc_2 )
-						free(global_alloc_2);
-					if ( global_alloc_3 )
-						free(global_alloc_3);
-					if ( global_alloc_4 )
-						free(global_alloc_4);
+					if ( gl_al_2 )
+						free(gl_al_2);
+					if ( gl_al_3 )
+						free(gl_al_3);
+					if ( gl_al_4 )
+						free(gl_al_4);
 					return 0;
 				}
 			}
