@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef size_t dim_t;
+
 struct config_store
 {
   char somestring1[4];
@@ -25,8 +27,8 @@ struct config_store
   int field_38;
   int field_3C;
   int field_40;
-  int ps_n1;
-  int ps_n2;
+  int width;
+  int height;
   int ps_n1_copy;
   int ps_n2_copy;
   int resolution;
@@ -64,38 +66,30 @@ struct valid_values_entry
 struct paper_size
 {
   char PaperSizeName[16];
-  size_t sizea;
-  size_t sizeb;
+  dim_t height;
+  dim_t width;
   const char *extra_string;
 };
 
 struct converted_1
 {
-  uint16_t field_0;
-  uint16_t always_3;
-  uint16_t field_4;
-  uint16_t sourcetray;
-  int16_t resolution;
-  uint16_t exists;
-  uint16_t toner_save;
-  uint16_t mediatype;
-  uint16_t duplex;
-  uint16_t always_1;
+//  uint16_t field_0;
+//  uint16_t always_3;
+//  uint16_t field_4;
+  uint16_t sourcetray; // enum
+  int16_t resolution; // enum
+
+  bool toner_save;
+  uint16_t mediatype; // enum
+  bool duplex;
   uint16_t duplex_type;
-  uint16_t sizea;
-  uint16_t sizeb;
-  uint16_t converted_sizeb;
+
+  dim_t height;
+  dim_t width;
+  dim_t converted_overflow;
+
   uint16_t sleep_time;
   uint16_t copies;
-  uint16_t field_20;
-  uint16_t field_22;
-  uint16_t field_24;
-  uint16_t field_26;
-  uint16_t field_28;
-  uint16_t field_2A;
-  uint16_t field_2C;
-  uint16_t field_2E;
-  uint16_t field_30;
 };
 
 struct struct_0
@@ -135,9 +129,6 @@ extern uint8_t *sending_row;
 extern uint8_t *last_sent_row;
 extern size_t row_width_0;
 
-extern uint16_t ga4_appends;
-extern size_t ga4_size;
-
 extern uint8_t* gl_al_2;
 extern uint8_t* gl_al_3;
 extern uint8_t* gl_al_4;
@@ -147,7 +138,7 @@ extern char flags[32];
 
 #include "decls.h"
 
-#define debug(x,y,z) {FILE* df = fopen("/tmp/bro_log.txt", "a"); fprintf(df, x, y, z); fclose(df);}
-#define debug2(x,y) {FILE* df = fopen("/tmp/bro_log.txt", "a"); fwrite(x, 1, y, df); fclose(df);}
+#define debug(x,y,z) {FILE* df = fopen("/tmp/bro_log.txt", "a"); if(df){fprintf(df, x, y, z); fclose(df);}}
+#define debug2(x,y) {FILE* df = fopen("/tmp/bro_log.txt", "a"); if(df){fwrite(x, 1, y, df); fclose(df);}}
 
 #endif

@@ -1,16 +1,16 @@
 ﻿#include "rawtobr3.h"
 
 size_t ga4_size;
-uint16_t ga4_appends;
+size_t ga4_appends;
 uint8_t ga4_preceeder;
 
 char flags[32] = {0};
 
 size_t row_width;
+size_t row_width_0;
 size_t sendbuf_size;
 uint8_t* sending_row;
 uint8_t* last_sent_row;
-size_t row_width_0;
 
 int send_job_headers(FILE *stream)
 {
@@ -18,8 +18,10 @@ int send_job_headers(FILE *stream)
 
 	fputs("\e%-12345X@PJL\n", stream);
 	if ( !((flags[0] - '0') & 1) )
-	fputs("@PJL JOB NAME=\"Brother HL-XXX\"\n", stream);
-	switch ( converted_2->resolution )
+	{
+		fputs("@PJL JOB NAME=\"Brother HL-XXX\"\n", stream);
+	}
+	switch(converted_2->resolution)
 	{
 		case 3:
 			fputs("@PJL SET RESOLUTION = 1200\n@PJL SET PAPERFEEDSPEED=HALF\n", stream);
@@ -129,7 +131,7 @@ int send_job_headers(FILE *stream)
 
 	const char* src = "dummy";
 	int act_sizeb;
-	fetch_paper(&ps, converted_2->sizea, converted_2->sizeb, &act_sizeb, &src);
+	fetch_paper(&ps, converted_2->height, converted_2->width, &act_sizeb, &src);
 	fputs("@PJL SET ORIENTATION = PORTRAIT\n", stream);
 	if(!src || !*src)
 	{
@@ -186,117 +188,84 @@ int send_job_headers(FILE *stream)
 	return 0;
 }
 
-void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, size_t orig_height)
+// This function does almost all the driver's job
+void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, size_t effective_height)
 {
-	uint8_t* data_logical;
-	size_t row_width_2 = (orig_width + 7) >> 3;// Always reached
-	row_width = row_width_2;
+	size_t converted_width = (orig_width + 7) >> 3;// Always reached
+	row_width = converted_width;
+
+	debug("Send converted data, where data is 0x%016zx, and rows are 0x%08zx bytes wide\n", data, row_width);
 
 	static int iteration = 0;
 	++iteration;
 
-	switch ( converted_2->resolution )
-	{
-		case 1:
-		  data_logical = &data[50 * row_width_2];
-		  orig_height -= 100;
-		  break;
-		case 2:
-		  data_logical = &data[100 * row_width_2];
-		  orig_height -= 200;
-		  break;
-		case 6:
-		  data_logical = &data[50 * row_width_2];
-		  orig_height -= 100;
-		  break;
-		default:
-		  data_logical = &data[200 * row_width_2];
-		  orig_height -= 400;
-		  break;
-	}
+	// Page blank FIELDS
+	int r = converted_2->resolution;
+	int rskip = ((r == 2) ? 100 : ((r == 1 || r == 6) ? 50 : 200));
+	int cskip = ((r == 1) ? 6 : ((r == 2 || r == 6) ? 12 : 25));
 
-	int v14;
-	switch(converted_2->resolution)
-	{
-		case 1:
-			v14 = 6;
-			row_width -= 12;
-			break;
-		case 3:
-		case 4:
-		case 5:
-			v14 = 25;
-			row_width -= 50;
-			break;
-		default:
-			v14 = 12;
-			row_width -= 24;
-			break;
-	}
+	effective_height -= 2 * rskip;
+	row_width -= 2 * cskip;
+	sending_row = data + rskip * converted_width + cskip;
 
 	fputs("\e*b1030m", stream_out); // Unknown PCL command \e*b1030m
 	ga4_size = 0;
 	ga4_appends = 0;
 	ga4_preceeder = 0;
 
-	// This statement should ALWAYS be true, so it's commented out
-	//if(1 || nonzero_found_1)
+	size_t converted_overflow = converted_2->converted_overflow;
+	size_t v13 = 624 * ((converted_2->resolution == 3) ? 4 : ((converted_2->resolution == 1 || converted_2->resolution == 6) ? 1 : 2));
+
+	if(row_width > v13 - converted_overflow)
 	{
-		size_t v13 = 624;
-		size_t converted_sizeb = converted_2->converted_sizeb;
-		if(converted_2->resolution == 1)
+		row_width = v13 - converted_overflow;
+	}
+
+	uint8_t sb;
+	// Here's the sending part
+	for(size_t i = 0; i <= effective_height; ++i)
+	{
+		if(converted_2->resolution == 4 && i & 1)
 		{
-			v13 /= 2;
+			sb = 0;
+			buffered_send(stream_out, 1, &sb);
 		}
-		if(converted_2->resolution >= 3 && converted_2->resolution <= 5)
+		else
 		{
-			v13 *= 2;
-		}
-		if(row_width > v13 - converted_sizeb)
-			row_width = v13 - converted_sizeb;
-		for(size_t i = 0; i <= orig_height; ++i)
-		{
-			sending_row = &data_logical[v14];
-			if(converted_2->resolution == 4 && i & 1)
+			debug("Sending a new row (0x%016zx, 0x%08zx)\n", sending_row, row_width);
+			if(is_all_zeroes(sending_row, row_width))
 			{
-				uint8_t sb = 0;
+				sb = 0xFF;
 				buffered_send(stream_out, 1, &sb);
 			}
 			else
 			{
-				if(is_all_zeroes(sending_row, row_width))
+				if(!(ga4_appends % 128) || !i)
 				{
-					uint8_t sb = 0xFF;
-					buffered_send(stream_out, 1, &sb);
+					last_sent_row = gl_al_2 + (2 * row_width) + (row_width >> 1);
+					row_width_0 = row_width;
+					bitwise_invert(sending_row, last_sent_row, row_width); // The whole row is in bitwise-inverted state present somewhere in ga_3
+				}
+				convert_2();
+
+				if(sendbuf_size)
+				{
+					buffered_send(stream_out, sendbuf_size, gl_al_2);
 				}
 				else
 				{
-					if(!(ga4_appends % 128) || !i)
-					{
-						last_sent_row = gl_al_2 + (2 * row_width) + (row_width >> 1);
-						row_width_0 = row_width;
-						bitwise_invert(sending_row, last_sent_row, row_width); // The whole row is in bitwise-inverted state present somewhere in ga_3
-					}
-					convert_2();
-					if(sendbuf_size)
-					{
-						buffered_send(stream_out, sendbuf_size, gl_al_2);
-					}
-					else
-					{
-						uint8_t sb = 0;
-						buffered_send(stream_out, 1, &sb);
-					}
+					sb = 0x00;
+					buffered_send(stream_out, 1, &sb);
 				}
-				last_sent_row = sending_row;
-				row_width_0 = row_width;
 			}
-			data_logical += row_width_2;
-			if ( converted_2->resolution == 6 )
-			{
-				uint8_t sb = 0;
-				buffered_send(stream_out, 1, &sb);
-			}
+			last_sent_row = sending_row;
+			row_width_0 = row_width;
+		}
+		sending_row += converted_width;
+		if(converted_2->resolution == 6)
+		{
+			sb = 0;
+			buffered_send(stream_out, 1, &sb);
 		}
 	}
 }

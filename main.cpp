@@ -4,20 +4,21 @@ uint8_t* gl_al_2;
 uint8_t* gl_al_3;
 uint8_t* gl_al_4;
 
-int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4);
+int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config);
 
 int main(int argc, char **argv)
 {
 	// Can also be some kind of a struct
-	int tray_params[5]; // [sp+54h] [bp-3C4h]@43
+	int tray_params[5];
 
 	// Args
-	char func[255]; // [sp+6Bh] [bp-3ADh]@3
-	char rcfile[255]; // [sp+16Ah] [bp-2AEh]@3
-	char paperinf[255]; // [sp+269h] [bp-1AFh]@3
-	int ps_n2; // [sp+368h] [bp-B0h]@47
-	int ps_n1; // [sp+36Ch] [bp-ACh]@47
-	config_store config; // [sp+370h] [bp-A8h]@1
+	char func[255];
+	char rcfile[255];
+	char paperinf[255];
+
+	int height;
+	int width;
+	config_store config;
 
 	config.stream_in_set = 0;
 	config.argv = argv;
@@ -32,7 +33,8 @@ int main(int argc, char **argv)
 	rcfile[0] = 0;
 	func[0] = 0;
 
-	for ( config.parsed_argc = 1; config.parsed_argc < argc; ++config.parsed_argc )
+	// ARGV parsing
+	for(config.parsed_argc = 1; config.parsed_argc < argc; ++config.parsed_argc)
 	{
 		if(!strcmp(argv[config.parsed_argc], "-pi"))
 		{
@@ -78,14 +80,14 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	// Argv parsing is done
+	// ARGV parsing is done
 	// Open configs
 	config.conf_stream = fopen(rcfile, "rt");
 	if(!config.conf_stream)
 	{
 		return report_error(1, rcfile);
 	}
-	if ( read_config(config.conf_stream, &config) )
+	if(read_config(config.conf_stream, &config))
 	{
 		return report_error(2, 0);
 	}
@@ -99,16 +101,20 @@ int main(int argc, char **argv)
 		strcpy(func, rcfile);
 		strcpy(func + config.conf_fname_len - 2, "cnuf");
 	}
+
 	if(fill_tray_params(func, tray_params))
 	{
 		return report_error(2, 0);
 	}
+
+	//read_selection_item();
+
 	config.conf_stream = fopen(paperinf, "rt");
-	if ( !config.conf_stream )
+	if(!config.conf_stream)
 	{
 		return report_error(1, paperinf);// Failed to open file
 	}
-	if ( get_pi_line(config.conf_stream, config.paper_size, &ps_n1, &ps_n2) )
+	if(get_pi_line(config.conf_stream, config.paper_size, &width, &height) )
 	{
 		return report_error(2, 0);
 	}
@@ -116,46 +122,50 @@ int main(int argc, char **argv)
 	switch(config.resolution)
 	{
 		case 1:
-			config.ps_n1 = ps_n1 / 2;
-			config.ps_n2 = ps_n2 / 2;
+			config.width = width / 2;
+			config.height = height / 2;
 			break;
 		case 3:
 		case 4:
 		case 5:
-			config.ps_n1 = 2 * ps_n1;
-			config.ps_n2 = 2 * ps_n2;
+			config.width = 2 * width;
+			config.height = 2 * height;
 			break;
 		case 6:
-			config.ps_n1 = ps_n1;
-			config.ps_n2 = ps_n2 / 2;
+			config.width = width;
+			config.height = height / 2;
 			break;
 		default:
-			config.ps_n1 = ps_n1;
-			config.ps_n2 = ps_n2;
+			config.width = width;
+			config.height = height;
 	}
 
 	// Resolution parsing is done
-	config.ps_n1_copy = config.ps_n1;
-	config.ps_n2_copy = config.ps_n2;
-	do_the_job(config.stream_in, config.stream_out, &config, tray_params);
+	config.ps_n1_copy = config.width;
+	config.ps_n2_copy = config.height;
+	do_the_job(config.stream_in, config.stream_out, &config);
 	return 0;
 }
 
-int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
+int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config)
 {
 	converted_1 converted; // [sp+26h] [bp-62h]@1
 	size_t alloc_1_read_total;
 
-	uint32_t ps_n1 = config->ps_n1;
-	uint32_t ps_n2 = config->ps_n2;
-	converted.always_3 = a4[3]; // 3
-	converted.field_4 = a4[4]; // Unknown and unused
+	uint32_t orig_width  = config->width;
+	uint32_t orig_height = config->height;
+	//converted.always_3 = a4[3]; // 3
+	//converted.field_4 = a4[4]; // Unknown and unused
 
-	size_t size = ps_n2 * ((ps_n1 + 7) / 8);
+	size_t converted_width = (uint32_t)(orig_width + 7) >> 3;
+	size_t size = orig_height * converted_width;
+
+	// alloc_1 is the buffer where all the input data is stored
 	uint8_t* alloc_1 = (uint8_t *)malloc(size);
+
 	if(alloc_1)
 	{
-		gl_al_2 = (uint8_t *)(malloc(5 * ps_n1 / 8));
+		gl_al_2 = (uint8_t *)(malloc(5 * orig_width / 8));
 		if(gl_al_2)
 		{
 			gl_al_3 = (uint8_t*)(malloc(1300u));
@@ -166,28 +176,27 @@ int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 				{
 					converted_2 = &converted;
 					convert_config(&converted, config);
-					if ( converted_2->always_3 == 3 ) // Always true
+					//if(converted_2->always_3 == 3) // Always true
 					{
 						send_job_headers(stream_out);
 						while(1)
 						{
-							size_t v15 = (uint32_t)(ps_n1 + 7) >> 3;
 							alloc_1_read_total = 0;
 
 							uint8_t* ptr = alloc_1;
-							for(uint32_t i = 0; i < ps_n2; ++i)
+							for(uint32_t i = 0; i < orig_height; ++i)
 							{
-								size_t v22 = fread(ptr, 1u, v15, stream_in);
-								if ( v22 != v15 )
+								size_t nread = fread(ptr, 1, converted_width, stream_in);
+								if(nread != converted_width)
 									break;
-								ptr += v22;
-								alloc_1_read_total += v22;
+								ptr += nread;
+								alloc_1_read_total += nread;
 							}
 
-							if ( size != alloc_1_read_total )
+							if(size != alloc_1_read_total)
 								break;
 
-							send_converted_data(stream_out, alloc_1, ps_n1, ps_n2);
+							send_converted_data(stream_out, alloc_1, orig_width, orig_height);
 							flush_ga4(stream_out);
 							fputs("1030M\f", stream_out);
 						}
@@ -199,13 +208,13 @@ int do_the_job(FILE *stream_in, FILE *stream_out, config_store *config, int *a4)
 						fputs("\e%-12345X", stream_out);
 					}
 					// Cleanup
-					if ( alloc_1 )
+					if(alloc_1)
 						free(alloc_1);
-					if ( gl_al_2 )
+					if(gl_al_2)
 						free(gl_al_2);
-					if ( gl_al_3 )
+					if(gl_al_3)
 						free(gl_al_3);
-					if ( gl_al_4 )
+					if(gl_al_4)
 						free(gl_al_4);
 					return 0;
 				}
@@ -236,4 +245,21 @@ int report_error(int reason, const char *message)
 			break;
 	}
 	return reason;
+}
+
+int fill_tray_params(char*, int *a2)
+{
+	int v2; // ST10_4@3
+	int v4; // [sp+14h] [bp-4h]@3
+
+	read_selection_item();
+	if(check_config_validity("Duplex", "ON") == 2)
+		a2[2] = 1;
+	v2 = check_config_validity("Paper Source", "MpTray");
+	v4 = check_config_validity("Paper Source", "AutoSelect");
+	if(v2 == 2 && v4 == 2)
+		*a2 = 1;
+	a2[3] = 3;
+	a2[1] = 0;
+	return 0;
 }

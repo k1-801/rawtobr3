@@ -1,6 +1,7 @@
 ﻿#include "rawtobr3.h"
 
 valid_values_entry valid_values;
+converted_1* converted_2;
 
 const char *config_fields_3[9] =
 {
@@ -15,33 +16,18 @@ const char *config_fields_3[9] =
   "TonerSaveMode"
 };
 
-converted_1 *convert_config(converted_1 *obj, config_store *config)
+converted_1* convert_config(converted_1 *obj, config_store *config)
 {
-	int act_sizeb; // [sp+3Ch] [bp-1Ch]@49
+	int overflow; // [sp+3Ch] [bp-1Ch]@49
 	paper_size *v8; // [sp+40h] [bp-18h]@49
 
 	obj->resolution = config->resolution;
 	if(obj->resolution > 6)
 		obj->resolution = 2;
 
-	obj->exists = 1;
-	switch(config->resolution)
-	{
-		case 1:
-			obj->sizeb = config->ps_n1_copy / 2.5;
-			obj->sizea = config->ps_n2_copy / 2.5;
-			break;
-		case 3:
-		case 4:
-		case 5:
-			obj->sizeb = config->ps_n1_copy / 10;
-			obj->sizea = config->ps_n2_copy / 10;
-			break;
-
-		default:
-			obj->sizeb = config->ps_n1_copy / 5;
-			obj->sizea = config->ps_n2_copy / 5;
-	}
+	double div = ((obj->resolution == 1) ? 2.5 : ((obj->resolution == 2 || obj->resolution == 6) ? 5 : 10));
+	obj->width = config->width / div;
+	obj->height = config->width / div;
 
 	// Sourcetray
 	if(config->tray_1 >= 3 && config->tray_1 <= 7)
@@ -55,39 +41,23 @@ converted_1 *convert_config(converted_1 *obj, config_store *config)
 	if(obj->mediatype > 9)
 		obj->mediatype = 0;
 	obj->duplex = config->duplex;
-	obj->always_1 = 1;
 	obj->duplex_type = config->duplex_type;
 	obj->toner_save = !config->toner_save;
 	obj->sleep_time = config->sleep_time;
 	obj->copies = config->copies;
 
-	if(obj->always_3 == 3) // Always true
+	//if(obj->always_3 == 3) // Always true
 	{
 		//const char* extra = "dummy";
-		fetch_paper(&v8, obj->sizea, obj->sizeb, &act_sizeb, 0);
-		switch ( obj->resolution )
-		{
-			case 3:
-			case 4:
-			case 5:
-				act_sizeb = 5 * act_sizeb / 3;
-				break;
-
-			case 2:
-			case 6:
-				act_sizeb = 5 * act_sizeb / 6;
-				break;
-
-			default:
-				act_sizeb /= 2.4;
-				break;
-		}
+		fetch_paper(&v8, obj->height, obj->width, &overflow, 0);
+		div = ((obj->resolution == 1) ? 12 : ((obj->resolution == 2 || obj->resolution == 6) ? 6 : 3));
+		overflow = overflow * 5 / div;
 	}
-	obj->converted_sizeb = act_sizeb / 8;
+	obj->converted_overflow = overflow >> 3;
 	return obj;
 }
 
-int fetch_paper(paper_size **a1, size_t sizea, size_t sizeb, int *act_sizeb, const char **extra_string)
+int fetch_paper(paper_size **a1, size_t r_height, size_t r_width, int *overflow, const char **pi_code)
 {
 	paper_size paper_sizes_data[13] =
 	{
@@ -108,24 +78,21 @@ int fetch_paper(paper_size **a1, size_t sizea, size_t sizeb, int *act_sizeb, con
 
 	for(int i = 0; i <= 12; ++i)
 	{
-		if(paper_sizes_data[i].sizea >= sizea && paper_sizes_data[i].sizeb >= sizeb )
+		if(paper_sizes_data[i].height >= r_height && paper_sizes_data[i].width >= r_width )
 		{
 			*a1 = &paper_sizes_data[i];
-			*act_sizeb = (int16_t)(paper_sizes_data[i].sizeb);
-			if(extra_string && *extra_string)
-				*extra_string = paper_sizes_data[i].extra_string;
-			if(i == 10)
-				*act_sizeb = 3 * (*act_sizeb - sizeb);
-			return 1;
+			if(pi_code && *pi_code)
+				*pi_code = paper_sizes_data[i].extra_string;
+			*overflow = 3 * (paper_sizes_data[i].width - r_width);
+			return (i == 10);
 		}
 	}
 	*a1 = &paper_sizes_data[12];
-	*act_sizeb = (int16_t)(paper_sizes_data[12].sizeb);
-	if(extra_string && *extra_string)
+	if(pi_code && *pi_code)
 	{
-		*extra_string = paper_sizes_data[12].extra_string;
+		*pi_code = paper_sizes_data[12].extra_string;
 	}
-	*act_sizeb = 3 * (*act_sizeb - sizeb);
+	*overflow = 3 * (paper_sizes_data[12].width - r_width);
 	return 0;
 }
 
@@ -154,8 +121,8 @@ char* get_default_req(char* dest, size_t limit)
 		"Duplex={OFF,ON}",
 		"Duplex Type={Long,Short}",
 		"Paper Type={A4,Letter,Legal,Exective,A5,A6,B5,JISB5,B6,C5,"
-		"DL,Com-10,Monarch,PC4x6,Postcard,DHagaki,EnvYou4,FOLIO,A4L,"
-		"CUSTOM1,CUSTOM2,CUSTOM3,CUSTOM4,CUSTOM5,CUSTOM6,CUSTOM7,CUSTOM8,CUSTOM9}",
+					"DL,Com-10,Monarch,PC4x6,Postcard,DHagaki,EnvYou4,FOLIO,A4L,"
+					"CUSTOM1,CUSTOM2,CUSTOM3,CUSTOM4,CUSTOM5,CUSTOM6,CUSTOM7,CUSTOM8,CUSTOM9}",
 		"Media={PlainPaper,ThinPaper,ThickPaper,Thicker Paper,BondPaper,Transparencies,Envelopes,Env.Thick,Env.Thin,Recycled}",
 		"Copies={\"1-999\"}",
 		"Sleep={PrinterDefault,\"1-99\"}",
@@ -475,23 +442,6 @@ int check_config_validity(const char *s2, const char *s1)
 		obj = obj->next;
 	}
 	return found;
-}
-
-int fill_tray_params(char*, int *a2)
-{
-	int v2; // ST10_4@3
-	int v4; // [sp+14h] [bp-4h]@3
-
-	read_selection_item();
-	if ( check_config_validity("Duplex", "ON") == 2 )
-		a2[2] = 1;
-	v2 = check_config_validity("Paper Source", "MpTray");
-	v4 = check_config_validity("Paper Source", "AutoSelect");
-	if ( v2 == 2 && v4 == 2 )
-		*a2 = 1;
-	a2[3] = 3;
-	a2[1] = 0;
-	return 0;
 }
 
 char *fgets_line(char *s, int n, FILE *stream)
