@@ -64,9 +64,9 @@ int send_job_headers(FILE *stream)
 		fputs("@PJL SET ECONOMODE = ON\n", stream);
 	else
 		fputs("@PJL SET ECONOMODE = OFF\n", stream);
-	if ( converted_2->sourcetray != 6 )
+	if(converted_2->sourcetray != 6)
 	{
-		switch ( converted_2->sourcetray )
+		switch(converted_2->sourcetray)
 		{
 			case 1:
 				fputs("@PJL SET SOURCETRAY = TRAY1\n", stream);
@@ -194,8 +194,6 @@ void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, siz
 	size_t converted_width = (orig_width + 7) >> 3;// Always reached
 	row_width = converted_width;
 
-	debug("Send converted data, where data is 0x%016zx, and rows are 0x%08zx bytes wide\n", data, row_width);
-
 	static int iteration = 0;
 	++iteration;
 
@@ -214,16 +212,16 @@ void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, siz
 	ga4_preceeder = 0;
 
 	size_t converted_overflow = converted_2->converted_overflow;
-	size_t v13 = 624 * ((converted_2->resolution == 3) ? 4 : ((converted_2->resolution == 1 || converted_2->resolution == 6) ? 1 : 2));
+	size_t max_width = 624 * ((converted_2->resolution == 3) ? 4 : ((converted_2->resolution == 1 || converted_2->resolution == 6) ? 1 : 2));
 
-	if(row_width > v13 - converted_overflow)
+	if(row_width > max_width - converted_overflow)
 	{
-		row_width = v13 - converted_overflow;
+		row_width = max_width - converted_overflow;
 	}
 
 	uint8_t sb;
 	// Here's the sending part
-	for(size_t i = 0; i <= effective_height; ++i)
+	for(size_t i = 0; i < effective_height; ++i)
 	{
 		if(converted_2->resolution == 4 && i & 1)
 		{
@@ -232,7 +230,6 @@ void send_converted_data(FILE *stream_out, uint8_t* data, size_t orig_width, siz
 		}
 		else
 		{
-			debug("Sending a new row (0x%016zx, 0x%08zx)\n", sending_row, row_width);
 			if(is_all_zeroes(sending_row, row_width))
 			{
 				sb = 0xFF;

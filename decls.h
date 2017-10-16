@@ -32,12 +32,11 @@ int parse_config_string(const char* src,   char* param_value);
 // Config
 char *truncate_spaces  (char *s1);
 char *fgets_line(char *s, int n, FILE *stream);
-int read_config(FILE* stream, config_store* conf);
+int read_config(FILE* stream, config_raw_t* conf);
 int get_pi_line(FILE* stream, int paper_size, int *a3, int *a4);
 int read_selection_item();
 int check_config_validity(const char* s2, const char* s1); // idb
-int fill_tray_params(char *a1, int *a2);
-converted_1* convert_config(converted_1 *obj, config_store *config);
+config_int_t* convert_config(config_int_t *obj, config_raw_t *config);
 // Not so config
 int fetch_paper(paper_size** a1, size_t height, size_t width, int* overflow, const char **extra_string); // idb
 // Misc

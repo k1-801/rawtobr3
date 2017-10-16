@@ -1,7 +1,7 @@
 ﻿#include "rawtobr3.h"
 
 valid_values_entry valid_values;
-converted_1* converted_2;
+config_int_t* converted_2;
 
 const char *config_fields_3[9] =
 {
@@ -16,10 +16,10 @@ const char *config_fields_3[9] =
   "TonerSaveMode"
 };
 
-converted_1* convert_config(converted_1 *obj, config_store *config)
+config_int_t* convert_config(config_int_t *obj, config_raw_t *config)
 {
 	int overflow; // [sp+3Ch] [bp-1Ch]@49
-	paper_size *v8; // [sp+40h] [bp-18h]@49
+	paper_size* ps; // [sp+40h] [bp-18h]@49
 
 	obj->resolution = config->resolution;
 	if(obj->resolution > 6)
@@ -49,7 +49,7 @@ converted_1* convert_config(converted_1 *obj, config_store *config)
 	//if(obj->always_3 == 3) // Always true
 	{
 		//const char* extra = "dummy";
-		fetch_paper(&v8, obj->height, obj->width, &overflow, 0);
+		fetch_paper(&ps, obj->height, obj->width, &overflow, 0);
 		div = ((obj->resolution == 1) ? 12 : ((obj->resolution == 2 || obj->resolution == 6) ? 6 : 3));
 		overflow = overflow * 5 / div;
 	}
@@ -180,12 +180,12 @@ int parse_resolution(const char *value, int *out)
 
 int parse_tray_1(const char *value, int *out)
 {
-	const char* values[9] = {"NULL", "Manual", "MpTray", "Tray1", "Tray2", "Tray3", "Tray4", "Tray5", "AutoSelect"};
-	for(int i = 1; i < 9; ++i )
+	const char* values[8] = {"Manual", "MpTray", "Tray1", "Tray2", "Tray3", "Tray4", "Tray5", "AutoSelect"};
+	for(int i = 0; i < 8; ++i )
 	{
 		if(!strcmp(value, values[i]))
 		{
-			*out = i;
+			*out = i + 1;
 			return *out;
 		}
 	}
@@ -266,11 +266,11 @@ int parse_mediatype(const char *value, int *out)
 
 int parse_copies(const char *value, int *out)
 {
-	int32_t v3; // [sp+14h] [bp-4h]@1
+	int num; // [sp+14h] [bp-4h]@1
 
-	v3 = atoi(value);
-	if ( v3 > 0 && v3 <= 999 )
-		*out = v3;
+	num = atoi(value);
+	if ( num > 0 && num <= 999 )
+		*out = num;
 	return *out;
 }
 
@@ -282,9 +282,9 @@ int parse_sleep_time(const char *value, int *out)
 	}
 	else
 	{
-		int v3 = atoi(value);
-		if(v3 > 0 && v3 <= 99)
-			*out = v3;
+		int num = atoi(value);
+		if(num > 0 && num <= 99)
+			*out = num;
 	}
 	return *out;
 }
@@ -307,12 +307,12 @@ int parse_config_string(const char *src, char *value)
 {
 	char param_name[1025] = {0};
 	memset(param_name, 0, 0x401u);
-	const char* v8 = strchr(src, '=');
-	if(!v8)
+	const char* pos = strchr(src, '=');
+	if(!pos)
 		return -1;
 
-	size_t n = v8 - src;
-	strncpy(param_name, src, v8 - src);
+	size_t n = pos - src;
+	strncpy(param_name, src, pos - src);
 	strcpy(value, &src[n + 1]);
 	for(int i = 0; i <= 8; ++i)
 	{
@@ -363,11 +363,9 @@ int get_pi_line(FILE *stream, int paper_size, int *sizea, int *sizeb)
 
 int read_selection_item()
 {
-	char strbuf[1025]; // [sp+20h] [bp-418h]@2
-	size_t size; // [sp+424h] [bp-14h]@5
-	int i; // [sp+428h] [bp-10h]@10
-	char *s; // [sp+42Ch] [bp-Ch]@7
-	char *v6; // [sp+430h] [bp-8h]@13
+	char strbuf[1025];
+	size_t size;
+	int i;
 
 	valid_values_entry* curr = &valid_values;
 	while(get_default_req(strbuf, 1024) && strbuf != strstr(strbuf, "[SelectionItem]"));
@@ -383,26 +381,26 @@ int read_selection_item()
 			break;
 		strcpy(curr->parname, strbuf);
 		curr->string2 = curr->parname;
-		s = strchr(curr->parname, '=');
-		if ( s )
+		char* s = strchr(curr->parname, '=');
+		if(s)
 		{
 			*s++ = 0;
-			if ( *s )
+			if(*s)
 			{
 				s = strchr(s, '{');
 				if ( s )
 				{
 					*s++ = 0;
-					for ( i = 0; i <= 31; ++i )
+					for(i = 0; i <= 31; ++i)
 					{
-						if ( *s )
+						if(*s)
 							curr->argv[i] = s;
-						v6 = s;
+						char* s2 = s;
 						s = strchr(s, ',');
-						if ( !s )
+						if(!s)
 						{
-							s = v6;
-							s = strchr(v6, '}');
+							s = s2;
+							s = strchr(s2, '}');
 							if ( s )
 								*s = 0;
 							++i;
@@ -446,25 +444,25 @@ int check_config_validity(const char *s2, const char *s1)
 
 char *fgets_line(char *s, int n, FILE *stream)
 {
-	char *v4; // [sp+20h] [bp-8h]@1
-	char *v5; // [sp+24h] [bp-4h]@2
+	char* raw; // [sp+20h] [bp-8h]@1
+	char* pos; // [sp+24h] [bp-4h]@2
 
-	v4 = fgets(s, n, stream);
-	if(v4)
+	raw = fgets(s, n, stream);
+	if(raw)
 	{
-		v5 = strchr(s, '\n');
-		if(v5)
-			*v5 = 0;
+		pos = strchr(s, '\n');
+		if(pos)
+			*pos = 0;
 	}
-	return v4;
+	return raw;
 }
 
-int read_config(FILE *stream, config_store *conf)
+int read_config(FILE *stream, config_raw_t *conf)
 {
 	char value[1024] = {0};
 	char buf[1024] = {0};
 	char s[1024] = {0};
-	bool v9 = 0;
+	bool flag = 0;
 
 	if(!stream || !conf)
 		return -1;
@@ -477,16 +475,16 @@ int read_config(FILE *stream, config_store *conf)
 		{
 			if(s[0] == '[') // Check sections
 			{
-				if(v9)
+				if(flag)
 					return -1;
-				v9 = 1;
+				flag = 1;
 				if(sscanf(s, "[%[^]]s", buf) == -1)
 					return -1;
 				strcpy(conf->somestring1, buf);
 			}
 			else if(s[0])
 			{
-				if(!v9)
+				if(!flag)
 					return -1;
 				switch(parse_config_string(s, value)) // returns param ID, sets s1 to param value
 				{
@@ -531,19 +529,19 @@ char *truncate_spaces(char *s1)
 {
   char s[1025]; // [sp+1Fh] [bp-409h]@1
   int i; // [sp+420h] [bp-8h]@1
-  int v4; // [sp+424h] [bp-4h]@1
+  int j; // [sp+424h] [bp-4h]@1
 
   memset(s, 0, 0x401u);
-  v4 = 0;
+  j = 0;
   for ( i = 0; s1[i]; ++i )
   {
 	if ( s1[i] != ' ' && s1[i] != '\t' )
-	  s[v4++] = s1[i];
+	  s[j++] = s1[i];
   }
   if ( strcmp(s1, s) )
   {
-	if ( s[v4] )
-	  s[v4] = 0;
+	if ( s[j] )
+	  s[j] = 0;
 	memset(s1, 0, 0x401u);
 	strcpy(s1, s);
   }

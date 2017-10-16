@@ -2,16 +2,16 @@
 
 bool is_all_zeroes(const void *src, size_t size)
 {
-	const uint32_t* v6 = (const uint32_t*)(src);
+	const uint32_t* sp = (const uint32_t*)(src);
 	for(int i = size >> 2; i >= 0; --i)
 	{
-		if (*v6++)
+		if (*sp++)
 			return 0;
 	}
-	const uint8_t* v7 = (uint8_t*)(v6);
+	const uint8_t* sp2 = (uint8_t*)(sp);
 	for(int i = size & 3; i >= 0; --i)
 	{
-		if(*v7++)
+		if(*sp2++)
 			return 0;
 	}
 	return 1;
@@ -19,16 +19,16 @@ bool is_all_zeroes(const void *src, size_t size)
 
 void bitwise_invert(const void* src, void* dst, size_t size)
 {
-	uint32_t* v4 = (uint32_t*)(src);
-	uint32_t* v5 = (uint32_t*)(dst);
+	uint32_t* sp = (uint32_t*)(src);
+	uint32_t* dp = (uint32_t*)(dst);
 	for(int i = size >> 2; i >= 0; --i)
 	{
-		*v5++ = ~*v4++;
+		*dp++ = ~*sp++;
 	}
-	uint8_t* v6 = (uint8_t*)(v4);
-	uint8_t* v7 = (uint8_t*)(v5);
+	uint8_t* sp2 = (uint8_t*)(sp);
+	uint8_t* dp2 = (uint8_t*)(dp);
 	for(int i = size & 3; i >= 0; --i)
 	{
-		*v7++ = ~*v6++;
+		*dp2++ = ~*sp2++;
 	}
 }
